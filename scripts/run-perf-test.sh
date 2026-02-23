@@ -34,10 +34,7 @@ echo "→ Building CLI..."
 yarn build:cli
 
 # ── 2. Boot iOS Simulator if needed ──
-BOOTED=$(xcrun simctl list devices booted -j | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).devices' 2>/dev/null | node -pe '
-  const d = JSON.parse(require("fs").readFileSync(0,"utf8"));
-  Object.values(d).flat().filter(x => x.state === "Booted").length
-' 2>/dev/null || echo 0)
+BOOTED=$(xcrun simctl list devices booted | grep -c "Booted" 2>/dev/null || echo 0)
 
 if [[ "$BOOTED" -eq 0 ]]; then
   echo "→ No simulator booted. Booting default device..."
@@ -50,11 +47,16 @@ echo "→ Building iOS example app..."
 yarn turbo run build:ios
 
 echo "→ Installing app on simulator..."
-APP_PATH=$(find example/ios/build -name "*.app" -type d 2>/dev/null | head -1)
+APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -path "*/RnPerfScoreExample.app" -type d 2>/dev/null | head -1)
+if [[ -z "$APP_PATH" ]]; then
+  # Fallback: check local build dir (CI may use --buildFolder)
+  APP_PATH=$(find example/ios/build -name "*.app" -type d 2>/dev/null | head -1)
+fi
 if [[ -z "$APP_PATH" ]]; then
   echo "Error: Could not find built .app bundle" >&2
   exit 1
 fi
+echo "  Found: $APP_PATH"
 xcrun simctl install booted "$APP_PATH"
 
 # ── 4. Start Metro in background ──
