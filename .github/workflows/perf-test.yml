@@ -1,0 +1,98 @@
+name: Perf Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  perf-test:
+    runs-on: macos-15
+
+    env:
+      XCODE_VERSION: 26
+      RCT_USE_RN_DEP: 1
+      RCT_USE_PREBUILT_RNCORE: 1
+      APP_ID: rnperfscore.example
+      METRO_PORT: 8081
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Use appropriate Xcode version
+        uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Build CLI
+        run: yarn build:cli
+
+      - name: Install CocoaPods + Build iOS example
+        run: |
+          cd example
+          bundle install
+          bundle exec pod repo update --verbose
+          bundle exec pod install --project-directory=ios
+          cd ..
+          yarn turbo run build:ios
+
+      - name: Boot iOS Simulator
+        run: |
+          xcrun simctl boot "iPhone 16 Pro" 2>/dev/null || true
+          xcrun simctl list devices booted
+
+      - name: Install app on simulator
+        run: |
+          APP_PATH=$(find example/ios/build -name "*.app" -type d | head -1)
+          echo "Installing $APP_PATH"
+          xcrun simctl install booted "$APP_PATH"
+
+      - name: Start Metro
+        run: |
+          yarn --cwd example start --port ${{ env.METRO_PORT }} &
+          echo "Waiting for Metro..."
+          for i in $(seq 1 30); do
+            if curl -s "http://localhost:${{ env.METRO_PORT }}/status" >/dev/null 2>&1; then
+              echo "Metro ready."
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Metro did not start in time"
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Run Maestro test
+        run: maestro test example/.maestro/perf-test.yaml
+
+      - name: Pull perf data
+        run: node cli-dist/index.js pull --app-id ${{ env.APP_ID }} --platform ios
+
+      - name: Generate report
+        run: node cli-dist/index.js report --input ./perf-results/rn-perf-score-results.json --format both
+
+      - name: Score gate
+        run: node cli-dist/index.js score --input ./perf-results/rn-perf-score-results.json --min-score 50
+
+      - name: Upload perf results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: perf-results
+          path: perf-results/
+          retention-days: 30

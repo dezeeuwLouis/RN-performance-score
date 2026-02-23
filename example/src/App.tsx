@@ -111,7 +111,9 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>rn-perf-score</Text>
-      <Text style={styles.status}>{status}</Text>
+      <Text style={styles.status} testID="status-text">
+        {status}
+      </Text>
 
       <View style={styles.buttons}>
         <Button
@@ -122,6 +124,7 @@ export default function App() {
         <View style={styles.gap} />
         <Button
           title="Run Scenario"
+          testID="run-scenario"
           onPress={runScenario}
           disabled={running || recording}
         />

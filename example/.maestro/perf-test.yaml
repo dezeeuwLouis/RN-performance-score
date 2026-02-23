@@ -1,0 +1,8 @@
+appId: rnperfscore.example
+---
+- launchApp
+- tapOn:
+    id: "run-scenario"
+- extendedWaitUntil:
+    visible: "Scenario done"
+    timeout: 30000
