@@ -1,7 +1,16 @@
-import { TurboModuleRegistry, type TurboModule } from 'react-native';
+import type { TurboModule } from 'react-native';
+import { TurboModuleRegistry } from 'react-native';
 
 export interface Spec extends TurboModule {
-  multiply(a: number, b: number): number;
+  startRecording(sampleIntervalMs: number): void;
+  stopRecording(): void;
+  isRecording(): boolean;
+  getUiFpsSamples(): string;
+  writeResultFile(filename: string, jsonContent: string): string;
+  getResultFilePath(filename: string): string;
+
+  addListener(eventName: string): void;
+  removeListeners(count: number): void;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('RnPerfScore');
