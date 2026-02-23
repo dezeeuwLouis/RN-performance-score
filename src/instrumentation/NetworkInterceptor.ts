@@ -17,15 +17,15 @@ export class NetworkInterceptor {
   start(): void {
     if (this.active) return;
     this.active = true;
+    // Only intercept fetch — in React Native, fetch is built on XHR,
+    // so intercepting both would produce duplicate events.
     this.interceptFetch();
-    this.interceptXHR();
   }
 
   stop(): void {
     if (!this.active) return;
     this.active = false;
     this.restoreFetch();
-    this.restoreXHR();
   }
 
   private interceptFetch(): void {

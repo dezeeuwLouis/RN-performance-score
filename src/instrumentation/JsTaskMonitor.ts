@@ -3,7 +3,7 @@ import { now } from '../utils/timestamp';
 
 type EventCallback = (event: PerfEvent) => void;
 
-const LONG_TASK_THRESHOLD_MS = 16;
+const LONG_TASK_THRESHOLD_MS = 100;
 
 export class JsTaskMonitor {
   private onEvent: EventCallback;
