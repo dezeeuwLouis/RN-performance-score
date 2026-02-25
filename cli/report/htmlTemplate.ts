@@ -120,8 +120,8 @@ var allMarkers = events.map(function(e) { return { t: e.timestamp, type: e.type,
   .sort(function(a, b) { return a.t - b.t; });
 
 // Chart layout constants — shared between draw and hover
-var CHART_H = 400;
-var padding = { top: 20, right: 20, bottom: 80, left: 50 };
+var CHART_H = 500;
+var padding = { top: 20, right: 20, bottom: 180, left: 50 };
 var maxTime, maxFps, chartW, chartH, canvasW;
 
 function getEventColor(type) {
@@ -220,8 +220,7 @@ function drawChart() {
       ctx.fillStyle = color + 'cc';
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'right';
-      var displayLabel = m.label.length > 30 ? m.label.slice(0, 28) + '...' : m.label;
-      ctx.fillText(displayLabel, 0, 0);
+      ctx.fillText(m.label, 0, 0);
       ctx.restore();
     }
   });
@@ -331,8 +330,7 @@ function setupHover() {
       html += '<div class="tt-event">';
       nearby.forEach(function(m) {
         var color = getEventColor(m.type);
-        var displayLabel = m.label.length > 40 ? m.label.slice(0, 38) + '...' : m.label;
-        html += '<div class="tt-event-item" style="color:' + color + '">' + displayLabel + '</div>';
+        html += '<div class="tt-event-item" style="color:' + color + '">' + m.label + '</div>';
       });
       html += '</div>';
     }
