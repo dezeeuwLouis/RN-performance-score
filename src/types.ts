@@ -67,6 +67,10 @@ export const SCORE_WARNING_THRESHOLD = 50;
 export const DROPPED_FRAME_RATIO = 0.9;
 export const MS_PER_SECOND = 1000;
 
+export const UI_WEIGHT = 0.6;
+export const JS_WEIGHT = 0.4;
+export const MAX_DROP_PENALTY = 30;
+
 export const DEFAULT_CONFIG: Required<PerfScoreConfig> = {
   sampleIntervalMs: DEFAULT_SAMPLE_INTERVAL_MS,
   targetFps: DEFAULT_TARGET_FPS,

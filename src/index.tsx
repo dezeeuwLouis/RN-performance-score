@@ -8,7 +8,14 @@ import type {
   DeviceInfo,
   PerfEventType,
 } from './types';
-import { DEFAULT_CONFIG, MAX_SCORE, DROPPED_FRAME_RATIO } from './types';
+import {
+  DEFAULT_CONFIG,
+  MAX_SCORE,
+  DROPPED_FRAME_RATIO,
+  UI_WEIGHT,
+  JS_WEIGHT,
+  MAX_DROP_PENALTY,
+} from './types';
 import { JsFpsRecorder } from './recorder/JsFpsRecorder';
 import { NativeFpsRecorder } from './recorder/NativeFpsRecorder';
 import { FpsDataStore } from './recorder/FpsDataStore';
@@ -149,7 +156,16 @@ class PerfScoreRecorder {
     const target = this.config.targetFps;
     const jsFpsScore = Math.min((avgJsFps / target) * MAX_SCORE, MAX_SCORE);
     const uiFpsScore = Math.min((avgUiFps / target) * MAX_SCORE, MAX_SCORE);
-    const score = Math.round((jsFpsScore + uiFpsScore) / 2);
+    const baseScore = uiFpsScore * UI_WEIGHT + jsFpsScore * JS_WEIGHT;
+
+    const threshold = target * DROPPED_FRAME_RATIO;
+    const droppedFramesJs = jsFpsValues.filter((f) => f < threshold).length;
+    const droppedFramesUi = uiFpsValues.filter((f) => f < threshold).length;
+
+    const totalSamples = trimmedSamples.length || 1;
+    const dropRatio = (droppedFramesJs + droppedFramesUi) / (totalSamples * 2);
+    const penalty = dropRatio * MAX_DROP_PENALTY;
+    const score = Math.max(0, Math.round(baseScore - penalty));
 
     return {
       version: 1,
@@ -170,8 +186,8 @@ class PerfScoreRecorder {
       avgUiFps: Math.round(avgUiFps * 10) / 10,
       minJsFps: jsFpsValues.length > 0 ? Math.min(...jsFpsValues) : 0,
       minUiFps: uiFpsValues.length > 0 ? Math.min(...uiFpsValues) : 0,
-      droppedFramesJs: jsFpsValues.filter((f) => f < target * DROPPED_FRAME_RATIO).length,
-      droppedFramesUi: uiFpsValues.filter((f) => f < target * DROPPED_FRAME_RATIO).length,
+      droppedFramesJs,
+      droppedFramesUi,
     };
   }
 }

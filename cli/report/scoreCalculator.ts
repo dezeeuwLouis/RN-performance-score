@@ -5,6 +5,9 @@ import {
   SCORE_WARNING_THRESHOLD,
   DROPPED_FRAME_RATIO,
   MS_PER_SECOND,
+  UI_WEIGHT,
+  JS_WEIGHT,
+  MAX_DROP_PENALTY,
 } from '../types';
 
 export function calculateScore(
@@ -23,9 +26,15 @@ export function calculateScore(
 
   const jsFpsScore = Math.min((avgJsFps / targetFps) * MAX_SCORE, MAX_SCORE);
   const uiFpsScore = Math.min((avgUiFps / targetFps) * MAX_SCORE, MAX_SCORE);
-  const score = Math.round((jsFpsScore + uiFpsScore) / 2);
+  const baseScore = uiFpsScore * UI_WEIGHT + jsFpsScore * JS_WEIGHT;
 
   const threshold = targetFps * DROPPED_FRAME_RATIO;
+  const droppedFramesJs = jsFpsValues.filter((f) => f < threshold).length;
+  const droppedFramesUi = uiFpsValues.filter((f) => f < threshold).length;
+
+  const dropRatio = (droppedFramesJs + droppedFramesUi) / (samples.length * 2);
+  const penalty = dropRatio * MAX_DROP_PENALTY;
+  const score = Math.max(0, Math.round(baseScore - penalty));
 
   return {
     score,
@@ -33,8 +42,8 @@ export function calculateScore(
     avgUiFps: Math.round(avgUiFps * 10) / 10,
     minJsFps: Math.min(...jsFpsValues),
     minUiFps: Math.min(...uiFpsValues),
-    droppedFramesJs: jsFpsValues.filter((f) => f < threshold).length,
-    droppedFramesUi: uiFpsValues.filter((f) => f < threshold).length,
+    droppedFramesJs,
+    droppedFramesUi,
   };
 }
 
