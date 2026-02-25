@@ -2,11 +2,16 @@ import { now } from '../utils/timestamp';
 
 export type JsFpsSampleCallback = (timestamp: number, fps: number) => void;
 
+/** Sliding window: 3× sample interval smooths jitter during normal operation */
+const WINDOW_MULTIPLIER = 3;
+
 export class JsFpsRecorder {
   private animationFrameId: number | null = null;
-  private frameCount: number = 0;
+  private frameTimestamps: number[] = [];
+  private framesSinceEmit: number = 0;
   private lastEmitTime: number = 0;
   private sampleIntervalMs: number;
+  private windowMs: number;
   private targetFps: number;
   private onSample: JsFpsSampleCallback;
   private running: boolean = false;
@@ -17,6 +22,7 @@ export class JsFpsRecorder {
     onSample: JsFpsSampleCallback
   ) {
     this.sampleIntervalMs = sampleIntervalMs;
+    this.windowMs = sampleIntervalMs * WINDOW_MULTIPLIER;
     this.targetFps = targetFps;
     this.onSample = onSample;
   }
@@ -25,7 +31,8 @@ export class JsFpsRecorder {
     if (this.running) return;
     this.running = true;
     this.lastEmitTime = now();
-    this.frameCount = 0;
+    this.frameTimestamps = [];
+    this.framesSinceEmit = 0;
     this.tick();
   }
 
@@ -45,18 +52,34 @@ export class JsFpsRecorder {
     if (!this.running) return;
 
     const currentTime = now();
-    this.frameCount++;
+    this.frameTimestamps.push(currentTime);
+    this.framesSinceEmit++;
+
+    // Trim timestamps older than the sliding window
+    const cutoff = currentTime - this.windowMs;
+    while (this.frameTimestamps.length > 0 && this.frameTimestamps[0]! < cutoff) {
+      this.frameTimestamps.shift();
+    }
 
     const elapsed = currentTime - this.lastEmitTime;
     if (elapsed >= this.sampleIntervalMs) {
-      const fps = Math.min(
-        (this.frameCount / elapsed) * 1000,
-        this.targetFps
-      );
+      let fps: number;
 
-      this.onSample(currentTime, fps);
+      if (elapsed > this.windowMs) {
+        // JS thread was blocked — use frame count over actual elapsed time
+        fps = (this.framesSinceEmit / elapsed) * 1000;
+      } else if (this.frameTimestamps.length >= 2) {
+        // Normal operation — use sliding window for smooth readings
+        const oldest = this.frameTimestamps[0]!;
+        const span = currentTime - oldest;
+        fps = span > 0 ? ((this.frameTimestamps.length - 1) / span) * 1000 : 0;
+      } else {
+        fps = 0;
+      }
+
+      this.onSample(currentTime, Math.min(fps, this.targetFps));
       this.lastEmitTime = currentTime;
-      this.frameCount = 0;
+      this.framesSinceEmit = 0;
     }
 
     this.animationFrameId = requestAnimationFrame(this.tick);
