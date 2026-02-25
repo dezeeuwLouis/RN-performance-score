@@ -26,7 +26,10 @@ class PerfScoreRecorder {
   private recording: boolean = false;
 
   configure(config: PerfScoreConfig): void {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    const filtered = Object.fromEntries(
+      Object.entries(config).filter(([, v]) => v !== undefined)
+    );
+    this.config = { ...DEFAULT_CONFIG, ...filtered };
   }
 
   start(config?: PerfScoreConfig): void {
@@ -127,8 +130,12 @@ class PerfScoreRecorder {
     startTime: number,
     endTime: number
   ): PerfReport {
-    const jsFpsValues = samples.map((s) => s.jsFps);
-    const uiFpsValues = samples.map((s) => s.uiFps);
+    // Trim warmup: skip leading samples before native recorder delivers first real value
+    const firstValidIdx = samples.findIndex((s) => s.jsFps > 0 && s.uiFps > 0);
+    const trimmedSamples = firstValidIdx > 0 ? samples.slice(firstValidIdx) : samples;
+
+    const jsFpsValues = trimmedSamples.map((s) => s.jsFps);
+    const uiFpsValues = trimmedSamples.map((s) => s.uiFps);
 
     const avgJsFps =
       jsFpsValues.length > 0
@@ -156,7 +163,7 @@ class PerfScoreRecorder {
       endTime,
       sampleIntervalMs: this.config.sampleIntervalMs,
       targetFps: this.config.targetFps,
-      samples,
+      samples: trimmedSamples,
       steps: [],
       score,
       avgJsFps: Math.round(avgJsFps * 10) / 10,
