@@ -1,15 +1,15 @@
 #import "RnPerfScore.h"
 #import <QuartzCore/CADisplayLink.h>
 
-static const NSInteger kMaxBufferSize = 64;
+static const NSInteger kWindowMultiplier = 3;
 
 @implementation RnPerfScore {
     CADisplayLink *_displayLink;
-    CFTimeInterval _frameTimestamps[kMaxBufferSize];
-    NSInteger _bufferHead;
-    NSInteger _bufferCount;
+    NSMutableArray<NSNumber *> *_frameTimestamps;
+    NSInteger _framesSinceEmit;
     CFTimeInterval _lastEmitTime;
     double _sampleIntervalMs;
+    double _windowMs;
     BOOL _isRecording;
     BOOL _hasListeners;
 }
@@ -37,8 +37,9 @@ static const NSInteger kMaxBufferSize = 64;
 
     _isRecording = YES;
     _sampleIntervalMs = sampleIntervalMs;
-    _bufferHead = 0;
-    _bufferCount = 0;
+    _windowMs = sampleIntervalMs * kWindowMultiplier;
+    _frameTimestamps = [NSMutableArray new];
+    _framesSinceEmit = 0;
     _lastEmitTime = CACurrentMediaTime();
 
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -92,28 +93,34 @@ static const NSInteger kMaxBufferSize = 64;
 - (void)onFrame:(CADisplayLink *)displayLink {
     CFTimeInterval currentTime = CACurrentMediaTime();
 
-    // Push timestamp into circular buffer
-    _frameTimestamps[_bufferHead] = currentTime;
-    _bufferHead = (_bufferHead + 1) % kMaxBufferSize;
-    if (_bufferCount < kMaxBufferSize) {
-        _bufferCount++;
+    [_frameTimestamps addObject:@(currentTime)];
+    _framesSinceEmit++;
+
+    // Trim timestamps older than the sliding window
+    CFTimeInterval cutoff = currentTime - (_windowMs / 1000.0);
+    while (_frameTimestamps.count > 0 && [_frameTimestamps[0] doubleValue] < cutoff) {
+        [_frameTimestamps removeObjectAtIndex:0];
     }
 
-    CFTimeInterval elapsedSinceEmit = (currentTime - _lastEmitTime) * 1000.0;
+    CFTimeInterval elapsedMs = (currentTime - _lastEmitTime) * 1000.0;
 
-    if (elapsedSinceEmit >= _sampleIntervalMs && _bufferCount >= 2) {
-        // Compute FPS from buffer: (N-1) / (newest - oldest)
-        NSInteger newestIdx = (_bufferHead - 1 + kMaxBufferSize) % kMaxBufferSize;
-        NSInteger oldestIdx = (_bufferCount < kMaxBufferSize) ? 0 : _bufferHead;
-        CFTimeInterval newest = _frameTimestamps[newestIdx];
-        CFTimeInterval oldest = _frameTimestamps[oldestIdx];
-        CFTimeInterval span = newest - oldest;
-
+    if (elapsedMs >= _sampleIntervalMs) {
         double fps = 0.0;
-        if (span > 0.0) {
-            fps = (double)(_bufferCount - 1) / span;
-            fps = MIN(fps, 60.0);
+
+        if (elapsedMs > _windowMs) {
+            // UI thread was blocked — use frame count over actual elapsed time
+            CFTimeInterval elapsedSec = elapsedMs / 1000.0;
+            fps = (double)_framesSinceEmit / elapsedSec;
+        } else if (_frameTimestamps.count >= 2) {
+            // Normal operation — use sliding window for smooth readings
+            CFTimeInterval oldest = [_frameTimestamps[0] doubleValue];
+            CFTimeInterval span = currentTime - oldest;
+            if (span > 0.0) {
+                fps = (double)(_frameTimestamps.count - 1) / span;
+            }
         }
+
+        fps = MIN(fps, 60.0);
 
         if (_hasListeners) {
             NSNumber *timestamp = @((NSInteger)([[NSDate date] timeIntervalSince1970] * 1000));
@@ -124,6 +131,7 @@ static const NSInteger kMaxBufferSize = 64;
         }
 
         _lastEmitTime = currentTime;
+        _framesSinceEmit = 0;
     }
 }
 
