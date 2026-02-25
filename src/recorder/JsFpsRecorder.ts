@@ -50,7 +50,7 @@ export class JsFpsRecorder {
     const elapsed = currentTime - this.intervalStart;
     if (elapsed >= this.sampleIntervalMs) {
       const fps = Math.min(
-        Math.round((this.frameCount / elapsed) * 1000),
+        (this.frameCount / elapsed) * 1000,
         this.targetFps
       );
       this.onSample(currentTime, fps);

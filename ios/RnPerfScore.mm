@@ -1,10 +1,14 @@
 #import "RnPerfScore.h"
 #import <QuartzCore/CADisplayLink.h>
 
+static const NSInteger kMaxBufferSize = 64;
+
 @implementation RnPerfScore {
     CADisplayLink *_displayLink;
-    NSInteger _frameCount;
-    CFTimeInterval _lastSampleTime;
+    CFTimeInterval _frameTimestamps[kMaxBufferSize];
+    NSInteger _bufferHead;
+    NSInteger _bufferCount;
+    CFTimeInterval _lastEmitTime;
     double _sampleIntervalMs;
     BOOL _isRecording;
     BOOL _hasListeners;
@@ -33,8 +37,9 @@
 
     _isRecording = YES;
     _sampleIntervalMs = sampleIntervalMs;
-    _frameCount = 0;
-    _lastSampleTime = CACurrentMediaTime();
+    _bufferHead = 0;
+    _bufferCount = 0;
+    _lastEmitTime = CACurrentMediaTime();
 
     dispatch_async(dispatch_get_main_queue(), ^{
         self->_displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(onFrame:)];
@@ -85,25 +90,40 @@
 #pragma mark - Display Link
 
 - (void)onFrame:(CADisplayLink *)displayLink {
-    _frameCount++;
-
     CFTimeInterval currentTime = CACurrentMediaTime();
-    CFTimeInterval elapsed = (currentTime - _lastSampleTime) * 1000.0; // Convert to ms
 
-    if (elapsed >= _sampleIntervalMs) {
-        double fps = (double)_frameCount / (elapsed / 1000.0);
-        fps = MIN(fps, 60.0); // Cap at 60
+    // Push timestamp into circular buffer
+    _frameTimestamps[_bufferHead] = currentTime;
+    _bufferHead = (_bufferHead + 1) % kMaxBufferSize;
+    if (_bufferCount < kMaxBufferSize) {
+        _bufferCount++;
+    }
+
+    CFTimeInterval elapsedSinceEmit = (currentTime - _lastEmitTime) * 1000.0;
+
+    if (elapsedSinceEmit >= _sampleIntervalMs && _bufferCount >= 2) {
+        // Compute FPS from buffer: (N-1) / (newest - oldest)
+        NSInteger newestIdx = (_bufferHead - 1 + kMaxBufferSize) % kMaxBufferSize;
+        NSInteger oldestIdx = (_bufferCount < kMaxBufferSize) ? 0 : _bufferHead;
+        CFTimeInterval newest = _frameTimestamps[newestIdx];
+        CFTimeInterval oldest = _frameTimestamps[oldestIdx];
+        CFTimeInterval span = newest - oldest;
+
+        double fps = 0.0;
+        if (span > 0.0) {
+            fps = (double)(_bufferCount - 1) / span;
+            fps = MIN(fps, 60.0);
+        }
 
         if (_hasListeners) {
             NSNumber *timestamp = @((NSInteger)([[NSDate date] timeIntervalSince1970] * 1000));
             [self sendEventWithName:@"onUiFpsSample" body:@{
                 @"timestamp": timestamp,
-                @"fps": @(round(fps))
+                @"fps": @(fps)
             }];
         }
 
-        _frameCount = 0;
-        _lastSampleTime = currentTime;
+        _lastEmitTime = currentTime;
     }
 }
 
