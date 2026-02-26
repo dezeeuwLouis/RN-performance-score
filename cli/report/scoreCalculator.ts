@@ -7,7 +7,8 @@ import {
   MS_PER_SECOND,
   UI_WEIGHT,
   JS_WEIGHT,
-  MAX_DROP_PENALTY,
+  AVG_SEVERITY_WEIGHT,
+  WORST_SEVERITY_WEIGHT,
 } from '../types';
 
 export function calculateScore(
@@ -32,16 +33,23 @@ export function calculateScore(
   const droppedFramesJs = jsFpsValues.filter((f) => f < threshold).length;
   const droppedFramesUi = uiFpsValues.filter((f) => f < threshold).length;
 
-  const dropRatio = (droppedFramesJs + droppedFramesUi) / (samples.length * 2);
-  const penalty = dropRatio * MAX_DROP_PENALTY;
+  const severities = samples.map((s) => {
+    const jsDeficit = Math.max(0, Math.min((targetFps - s.jsFps) / targetFps, 1));
+    const uiDeficit = Math.max(0, Math.min((targetFps - s.uiFps) / targetFps, 1));
+    return Math.max(jsDeficit, uiDeficit) ** 2;
+  });
+
+  const avgSeverity = severities.reduce((a, b) => a + b, 0) / severities.length;
+  const worstSeverity = Math.max(...severities);
+  const penalty = avgSeverity * AVG_SEVERITY_WEIGHT + worstSeverity * WORST_SEVERITY_WEIGHT;
   const score = Math.max(0, Math.round(baseScore - penalty));
 
   return {
     score,
     avgJsFps: Math.round(avgJsFps * 10) / 10,
     avgUiFps: Math.round(avgUiFps * 10) / 10,
-    minJsFps: Math.min(...jsFpsValues),
-    minUiFps: Math.min(...uiFpsValues),
+    minJsFps: Math.round(Math.min(...jsFpsValues) * 10) / 10,
+    minUiFps: Math.round(Math.min(...uiFpsValues) * 10) / 10,
     droppedFramesJs,
     droppedFramesUi,
   };

@@ -33,7 +33,8 @@ export const MS_PER_SECOND = 1000;
 
 export const UI_WEIGHT = 0.6;
 export const JS_WEIGHT = 0.4;
-export const MAX_DROP_PENALTY = 30;
+export const AVG_SEVERITY_WEIGHT = 50;
+export const WORST_SEVERITY_WEIGHT = 60;
 
 export interface PerfReport {
   version: number;

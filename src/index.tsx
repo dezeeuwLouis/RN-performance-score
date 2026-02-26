@@ -14,7 +14,8 @@ import {
   DROPPED_FRAME_RATIO,
   UI_WEIGHT,
   JS_WEIGHT,
-  MAX_DROP_PENALTY,
+  AVG_SEVERITY_WEIGHT,
+  WORST_SEVERITY_WEIGHT,
 } from './types';
 import { JsFpsRecorder } from './recorder/JsFpsRecorder';
 import { NativeFpsRecorder } from './recorder/NativeFpsRecorder';
@@ -162,9 +163,20 @@ class PerfScoreRecorder {
     const droppedFramesJs = jsFpsValues.filter((f) => f < threshold).length;
     const droppedFramesUi = uiFpsValues.filter((f) => f < threshold).length;
 
-    const totalSamples = trimmedSamples.length || 1;
-    const dropRatio = (droppedFramesJs + droppedFramesUi) / (totalSamples * 2);
-    const penalty = dropRatio * MAX_DROP_PENALTY;
+    const severities = trimmedSamples.map((s) => {
+      const jsDeficit = Math.max(0, Math.min((target - s.jsFps) / target, 1));
+      const uiDeficit = Math.max(0, Math.min((target - s.uiFps) / target, 1));
+      return Math.max(jsDeficit, uiDeficit) ** 2;
+    });
+
+    const avgSeverity =
+      severities.length > 0
+        ? severities.reduce((a, b) => a + b, 0) / severities.length
+        : 0;
+    const worstSeverity =
+      severities.length > 0 ? Math.max(...severities) : 0;
+    const penalty =
+      avgSeverity * AVG_SEVERITY_WEIGHT + worstSeverity * WORST_SEVERITY_WEIGHT;
     const score = Math.max(0, Math.round(baseScore - penalty));
 
     return {
@@ -184,8 +196,14 @@ class PerfScoreRecorder {
       score,
       avgJsFps: Math.round(avgJsFps * 10) / 10,
       avgUiFps: Math.round(avgUiFps * 10) / 10,
-      minJsFps: jsFpsValues.length > 0 ? Math.min(...jsFpsValues) : 0,
-      minUiFps: uiFpsValues.length > 0 ? Math.min(...uiFpsValues) : 0,
+      minJsFps:
+        jsFpsValues.length > 0
+          ? Math.round(Math.min(...jsFpsValues) * 10) / 10
+          : 0,
+      minUiFps:
+        uiFpsValues.length > 0
+          ? Math.round(Math.min(...uiFpsValues) * 10) / 10
+          : 0,
       droppedFramesJs,
       droppedFramesUi,
     };
