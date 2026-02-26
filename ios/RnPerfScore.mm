@@ -2,6 +2,8 @@
 #import <QuartzCore/CADisplayLink.h>
 
 static const NSInteger kWindowMultiplier = 3;
+static const double kTargetFps = 60.0;
+static const double kSnapThreshold = 0.92;
 
 @implementation RnPerfScore {
     CADisplayLink *_displayLink;
@@ -120,7 +122,11 @@ static const NSInteger kWindowMultiplier = 3;
             }
         }
 
-        fps = MIN(fps, 60.0);
+        if (fps >= kTargetFps * kSnapThreshold) {
+            fps = kTargetFps;
+        } else {
+            fps = MIN(fps, kTargetFps);
+        }
 
         if (_hasListeners) {
             NSNumber *timestamp = @((NSInteger)([[NSDate date] timeIntervalSince1970] * 1000));

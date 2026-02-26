@@ -16,6 +16,8 @@ class RnPerfScoreModule(reactContext: ReactApplicationContext) :
   companion object {
     const val NAME = NativeRnPerfScoreSpec.NAME
     private const val WINDOW_MULTIPLIER = 3
+    private const val TARGET_FPS = 60.0
+    private const val SNAP_THRESHOLD = 0.92
   }
 
   private val frameTimestamps = mutableListOf<Long>()
@@ -58,7 +60,11 @@ class RnPerfScoreModule(reactContext: ReactApplicationContext) :
           }
         }
 
-        fps = fps.coerceAtMost(60.0)
+        fps = if (fps >= TARGET_FPS * SNAP_THRESHOLD) {
+          TARGET_FPS
+        } else {
+          fps.coerceAtMost(TARGET_FPS)
+        }
 
         if (listenerCount > 0) {
           val params = Arguments.createMap().apply {

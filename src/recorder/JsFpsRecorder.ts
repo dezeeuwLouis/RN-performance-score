@@ -4,6 +4,7 @@ export type JsFpsSampleCallback = (timestamp: number, fps: number) => void;
 
 /** Sliding window: 3× sample interval smooths jitter during normal operation */
 const WINDOW_MULTIPLIER = 3;
+const SNAP_THRESHOLD = 0.92;
 
 export class JsFpsRecorder {
   private animationFrameId: number | null = null;
@@ -77,7 +78,11 @@ export class JsFpsRecorder {
         fps = 0;
       }
 
-      this.onSample(currentTime, Math.min(fps, this.targetFps));
+      const snapped =
+        fps >= this.targetFps * SNAP_THRESHOLD
+          ? this.targetFps
+          : Math.min(fps, this.targetFps);
+      this.onSample(currentTime, snapped);
       this.lastEmitTime = currentTime;
       this.framesSinceEmit = 0;
     }
