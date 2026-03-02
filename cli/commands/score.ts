@@ -17,9 +17,7 @@ export function score(options: ScoreOptions): void {
     process.exit(1);
   }
 
-  let report: PerfReport = JSON.parse(
-    fs.readFileSync(options.input, 'utf-8')
-  );
+  let report: PerfReport = JSON.parse(fs.readFileSync(options.input, 'utf-8'));
 
   if (options.steps) {
     const steps = parseStepsFile(options.steps);

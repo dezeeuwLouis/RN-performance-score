@@ -28,6 +28,8 @@ export function mergeStepsIntoReport(
 ): PerfReport {
   return {
     ...report,
-    steps: [...report.steps, ...steps].sort((a, b) => a.timestamp - b.timestamp),
+    steps: [...report.steps, ...steps].sort(
+      (a, b) => a.timestamp - b.timestamp
+    ),
   };
 }

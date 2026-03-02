@@ -9,7 +9,9 @@ export function generateChartData(report: PerfReport): {
   steps: StepMarker[];
 } {
   const startTime = report.startTime;
-  const timestamps = report.samples.map((s) => (s.timestamp - startTime) / MS_PER_SECOND);
+  const timestamps = report.samples.map(
+    (s) => (s.timestamp - startTime) / MS_PER_SECOND
+  );
   const jsFps = report.samples.map((s) => s.jsFps);
   const uiFps = report.samples.map((s) => s.uiFps);
 

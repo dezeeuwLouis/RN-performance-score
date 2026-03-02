@@ -30,14 +30,17 @@ export class NetworkInterceptor {
     this.originalFetch = global.fetch;
     const self = this;
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    global.fetch = function (this: unknown, input: RequestInfo | URL, init?: RequestInit) {
+    global.fetch = function (
+      this: unknown,
+      input: RequestInfo | URL,
+      init?: RequestInit
+    ) {
       const url =
         typeof input === 'string'
           ? input
           : input instanceof URL
-            ? input.toString()
-            : input.url;
+          ? input.toString()
+          : input.url;
       const method = init?.method ?? 'GET';
       const label = `${method} ${url}`;
       const startTime = now();
@@ -77,5 +80,4 @@ export class NetworkInterceptor {
       this.originalFetch = null;
     }
   }
-
 }

@@ -30,9 +30,7 @@ export function compare(options: CompareOptions): void {
 
   const regression = baseline.score - current.score;
   const regressionPct =
-    baseline.score > 0
-      ? ((regression / baseline.score) * 100).toFixed(1)
-      : '0';
+    baseline.score > 0 ? ((regression / baseline.score) * 100).toFixed(1) : '0';
   const passed = regression <= options.maxRegression;
 
   if (options.json) {
@@ -58,7 +56,11 @@ export function compare(options: CompareOptions): void {
     console.log('');
     console.log(`  Current score:   ${current.score}`);
     console.log(`  Baseline score:  ${baseline.score}`);
-    console.log(`  Regression:      ${regression > 0 ? '-' : '+'}${Math.abs(regression)} points (${regressionPct}%)`);
+    console.log(
+      `  Regression:      ${regression > 0 ? '-' : '+'}${Math.abs(
+        regression
+      )} points (${regressionPct}%)`
+    );
     console.log(`  Max allowed:     ${options.maxRegression} points`);
     console.log(`  Result:          ${passed ? '✓ PASS' : '✗ FAIL'}`);
     console.log('');

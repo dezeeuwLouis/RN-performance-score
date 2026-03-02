@@ -14,9 +14,25 @@ import {
 export function calculateScore(
   samples: FpsSample[],
   targetFps: number
-): { score: number; avgJsFps: number; avgUiFps: number; minJsFps: number; minUiFps: number; droppedFramesJs: number; droppedFramesUi: number } {
+): {
+  score: number;
+  avgJsFps: number;
+  avgUiFps: number;
+  minJsFps: number;
+  minUiFps: number;
+  droppedFramesJs: number;
+  droppedFramesUi: number;
+} {
   if (samples.length === 0) {
-    return { score: 0, avgJsFps: 0, avgUiFps: 0, minJsFps: 0, minUiFps: 0, droppedFramesJs: 0, droppedFramesUi: 0 };
+    return {
+      score: 0,
+      avgJsFps: 0,
+      avgUiFps: 0,
+      minJsFps: 0,
+      minUiFps: 0,
+      droppedFramesJs: 0,
+      droppedFramesUi: 0,
+    };
   }
 
   const jsFpsValues = samples.map((s) => s.jsFps);
@@ -34,14 +50,21 @@ export function calculateScore(
   const droppedFramesUi = uiFpsValues.filter((f) => f < threshold).length;
 
   const severities = samples.map((s) => {
-    const jsDeficit = Math.max(0, Math.min((targetFps - s.jsFps) / targetFps, 1));
-    const uiDeficit = Math.max(0, Math.min((targetFps - s.uiFps) / targetFps, 1));
+    const jsDeficit = Math.max(
+      0,
+      Math.min((targetFps - s.jsFps) / targetFps, 1)
+    );
+    const uiDeficit = Math.max(
+      0,
+      Math.min((targetFps - s.uiFps) / targetFps, 1)
+    );
     return Math.max(jsDeficit, uiDeficit) ** 2;
   });
 
   const avgSeverity = severities.reduce((a, b) => a + b, 0) / severities.length;
   const worstSeverity = Math.max(...severities);
-  const penalty = avgSeverity * AVG_SEVERITY_WEIGHT + worstSeverity * WORST_SEVERITY_WEIGHT;
+  const penalty =
+    avgSeverity * AVG_SEVERITY_WEIGHT + worstSeverity * WORST_SEVERITY_WEIGHT;
   const score = Math.max(0, Math.round(baseScore - penalty));
 
   return {
@@ -56,7 +79,10 @@ export function calculateScore(
 }
 
 export function printScoreSummary(report: PerfReport): void {
-  const duration = ((report.endTime - report.startTime) / MS_PER_SECOND).toFixed(1);
+  const duration = (
+    (report.endTime - report.startTime) /
+    MS_PER_SECOND
+  ).toFixed(1);
 
   console.log('');
   console.log('═══════════════════════════════════════');
@@ -82,6 +108,7 @@ export function printScoreSummary(report: PerfReport): void {
 
 function formatScore(score: number): string {
   if (score >= SCORE_GOOD_THRESHOLD) return `${score}/${MAX_SCORE} ✓ GOOD`;
-  if (score >= SCORE_WARNING_THRESHOLD) return `${score}/${MAX_SCORE} ~ WARNING`;
+  if (score >= SCORE_WARNING_THRESHOLD)
+    return `${score}/${MAX_SCORE} ~ WARNING`;
   return `${score}/${MAX_SCORE} ✗ POOR`;
 }

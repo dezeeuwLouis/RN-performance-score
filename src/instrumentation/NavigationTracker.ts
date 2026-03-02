@@ -25,7 +25,9 @@ export class NavigationTracker {
   attachToNavigation(navigationRef: {
     addListener: (
       event: string,
-      callback: (e: { data?: { state?: { routes?: { name: string }[] } } }) => void
+      callback: (e: {
+        data?: { state?: { routes?: { name: string }[] } };
+      }) => void
     ) => () => void;
   }): void {
     this.unsubscribe = navigationRef.addListener('state', (e) => {

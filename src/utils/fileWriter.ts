@@ -1,9 +1,6 @@
 import NativeRnPerfScore from '../NativeRnPerfScore';
 
-export function writeResultFile(
-  filename: string,
-  data: unknown
-): string {
+export function writeResultFile(filename: string, data: unknown): string {
   const jsonContent = JSON.stringify(data);
   return NativeRnPerfScore.writeResultFile(filename, jsonContent);
 }

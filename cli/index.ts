@@ -35,8 +35,16 @@ program
   .description('Calculate and display performance score')
   .requiredOption('--input <path>', 'Path to performance data JSON')
   .option('--steps <path>', 'Path to perf-steps.log for step markers')
-  .option('--min-score <n>', 'Minimum passing score (exit 1 if below)', parseFloat)
-  .option('--fps-threshold <n>', 'Minimum average FPS (exit 1 if below)', parseFloat)
+  .option(
+    '--min-score <n>',
+    'Minimum passing score (exit 1 if below)',
+    parseFloat
+  )
+  .option(
+    '--fps-threshold <n>',
+    'Minimum average FPS (exit 1 if below)',
+    parseFloat
+  )
   .option('--json', 'Output as JSON')
   .action((opts) => {
     score({
@@ -71,7 +79,12 @@ program
   .description('Compare performance against a baseline')
   .requiredOption('--input <path>', 'Path to current run JSON')
   .option('--baseline <path>', 'Path to baseline file', '.perf-baseline.json')
-  .option('--max-regression <n>', 'Max allowed score regression points', parseFloat, 5)
+  .option(
+    '--max-regression <n>',
+    'Max allowed score regression points',
+    parseFloat,
+    5
+  )
   .option('--json', 'Output as JSON')
   .action((opts) => {
     compare({

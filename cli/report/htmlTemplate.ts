@@ -8,12 +8,23 @@ import { generateChartData } from './chartRenderer';
 
 export function generateHtmlReport(report: PerfReport): string {
   const chartData = generateChartData(report);
-  const duration = ((report.endTime - report.startTime) / MS_PER_SECOND).toFixed(1);
+  const duration = (
+    (report.endTime - report.startTime) /
+    MS_PER_SECOND
+  ).toFixed(1);
 
   const scoreColor =
-    report.score >= SCORE_GOOD_THRESHOLD ? '#10b981' : report.score >= SCORE_WARNING_THRESHOLD ? '#f59e0b' : '#ef4444';
+    report.score >= SCORE_GOOD_THRESHOLD
+      ? '#10b981'
+      : report.score >= SCORE_WARNING_THRESHOLD
+      ? '#f59e0b'
+      : '#ef4444';
   const scoreLabel =
-    report.score >= SCORE_GOOD_THRESHOLD ? 'GOOD' : report.score >= SCORE_WARNING_THRESHOLD ? 'WARNING' : 'POOR';
+    report.score >= SCORE_GOOD_THRESHOLD
+      ? 'GOOD'
+      : report.score >= SCORE_WARNING_THRESHOLD
+      ? 'WARNING'
+      : 'POOR';
 
   const eventsJson = JSON.stringify(chartData.events);
   const stepsJson = JSON.stringify(chartData.steps);
@@ -59,11 +70,17 @@ export function generateHtmlReport(report: PerfReport): string {
 <body>
 <div class="container">
   <h1>rn-perf-score Report</h1>
-  <p class="subtitle">${report.deviceInfo.platform} &middot; ${report.deviceInfo.model} &middot; ${duration}s &middot; ${new Date(report.startTime).toLocaleString()}</p>
+  <p class="subtitle">${report.deviceInfo.platform} &middot; ${
+    report.deviceInfo.model
+  } &middot; ${duration}s &middot; ${new Date(
+    report.startTime
+  ).toLocaleString()}</p>
 
   <div class="score-card">
     <div>
-      <div class="score-value" style="color: ${scoreColor}">${report.score}</div>
+      <div class="score-value" style="color: ${scoreColor}">${
+    report.score
+  }</div>
       <div class="score-label" style="color: ${scoreColor}">${scoreLabel}</div>
     </div>
     <div class="score-details">

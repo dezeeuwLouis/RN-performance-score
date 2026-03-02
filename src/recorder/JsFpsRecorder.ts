@@ -58,7 +58,10 @@ export class JsFpsRecorder {
 
     // Trim timestamps older than the sliding window
     const cutoff = currentTime - this.windowMs;
-    while (this.frameTimestamps.length > 0 && this.frameTimestamps[0]! < cutoff) {
+    while (
+      this.frameTimestamps.length > 0 &&
+      this.frameTimestamps[0]! < cutoff
+    ) {
       this.frameTimestamps.shift();
     }
 

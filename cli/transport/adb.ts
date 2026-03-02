@@ -19,7 +19,7 @@ export function pullFromAndroid(
       stdio: 'pipe',
     });
     return localPath;
-  } catch (error) {
+  } catch {
     // Try run-as for non-debuggable apps
     try {
       execSync(

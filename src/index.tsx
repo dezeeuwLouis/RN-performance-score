@@ -79,7 +79,9 @@ class PerfScoreRecorder {
   attachNavigation(navigationRef: {
     addListener: (
       event: string,
-      callback: (e: { data?: { state?: { routes?: { name: string }[] } } }) => void
+      callback: (e: {
+        data?: { state?: { routes?: { name: string }[] } };
+      }) => void
     ) => () => void;
   }): void {
     this.autoInstrumentation
@@ -140,7 +142,8 @@ class PerfScoreRecorder {
   ): PerfReport {
     // Trim warmup: skip leading samples before native recorder delivers first real value
     const firstValidIdx = samples.findIndex((s) => s.jsFps > 0 && s.uiFps > 0);
-    const trimmedSamples = firstValidIdx > 0 ? samples.slice(firstValidIdx) : samples;
+    const trimmedSamples =
+      firstValidIdx > 0 ? samples.slice(firstValidIdx) : samples;
 
     const jsFpsValues = trimmedSamples.map((s) => s.jsFps);
     const uiFpsValues = trimmedSamples.map((s) => s.uiFps);
@@ -173,8 +176,7 @@ class PerfScoreRecorder {
       severities.length > 0
         ? severities.reduce((a, b) => a + b, 0) / severities.length
         : 0;
-    const worstSeverity =
-      severities.length > 0 ? Math.max(...severities) : 0;
+    const worstSeverity = severities.length > 0 ? Math.max(...severities) : 0;
     const penalty =
       avgSeverity * AVG_SEVERITY_WEIGHT + worstSeverity * WORST_SEVERITY_WEIGHT;
     const score = Math.max(0, Math.round(baseScore - penalty));
