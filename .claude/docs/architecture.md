@@ -90,15 +90,36 @@ The TurboModule (`NativeRnPerfScore.ts`) defines the JS↔Native bridge:
 
 ### iOS Implementation
 - `CADisplayLink` added to main run loop in `NSRunLoopCommonModes`
-- Frame count accumulated per sampling interval
-- FPS = frameCount / elapsed, capped at 60
+- Hybrid sliding window (3× sample interval) with gap detection for FPS calculation
+- Snap-to-target rounding applied before emitting (see below)
 - Files written to app's `Documents/` directory
 
 ### Android Implementation
 - `Choreographer.FrameCallback` posted on UI thread
-- Frame count accumulated per sampling interval
-- FPS = frameCount / elapsed, capped at 60
+- Hybrid sliding window (3× sample interval) with gap detection for FPS calculation
+- Snap-to-target rounding applied before emitting (see below)
 - Files written to app's `filesDir`
+
+### FPS Measurement: Snap-to-Target Rounding
+
+All three FPS recorders (iOS native, Android native, JS) use `(count-1)/span` over a
+sliding window for accurate FPS calculation. However, frame boundary trimming causes
+micro-noise: at true 60 FPS, raw readings fluctuate between 56-60 due to frames
+landing just outside the window cutoff.
+
+**Snap-to-target** filters this noise without hiding real drops:
+
+```
+rawFps = (count - 1) / span
+if rawFps >= targetFps * SNAP_THRESHOLD:   // SNAP_THRESHOLD = 0.92
+    fps = targetFps                        // noise → snapped to 60
+else:
+    fps = min(rawFps, targetFps)           // real drop → passed through
+```
+
+At 92% threshold (55.2 FPS for target 60), readings 55+ snap to 60 while genuine
+drops below 55 pass through accurately. Constants: `SNAP_THRESHOLD = 0.92` (JS),
+`kSnapThreshold` (iOS), `SNAP_THRESHOLD` (Android companion object).
 
 ## Data Flow
 
