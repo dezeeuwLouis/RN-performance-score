@@ -54,8 +54,14 @@ export function calculateScore(
   const droppedFramesUi = uiFpsValues.filter((f) => f < threshold).length;
 
   const severities = samples.map((s) => {
-    const jsDeficit = Math.max(0, Math.min((targetFps - s.jsFps) / targetFps, 1));
-    const uiDeficit = Math.max(0, Math.min((targetFps - s.uiFps) / targetFps, 1));
+    const jsDeficit = Math.max(
+      0,
+      Math.min((targetFps - s.jsFps) / targetFps, 1)
+    );
+    const uiDeficit = Math.max(
+      0,
+      Math.min((targetFps - s.uiFps) / targetFps, 1)
+    );
     return Math.max(jsDeficit, uiDeficit) ** 2;
   });
 
