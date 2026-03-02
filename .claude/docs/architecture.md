@@ -25,6 +25,8 @@ rn-perf-score/
 │   │   ├── NavigationTracker.ts    ← React Navigation event listener
 │   │   ├── JsTaskMonitor.ts        ← rAF gap detection (>16ms)
 │   │   └── index.ts                ← Orchestrator
+│   ├── lib/                         ← Shared logic (used by both src/ and cli/)
+│   │   └── scoring.ts              ← calculateScore() — single scoring formula
 │   └── utils/
 │       ├── fileWriter.ts           ← Write JSON via native module
 │       └── timestamp.ts            ← Timestamp utilities
@@ -41,7 +43,7 @@ rn-perf-score/
 │   ├── report/
 │   │   ├── htmlTemplate.ts         ← Self-contained HTML report generator
 │   │   ├── chartRenderer.ts        ← Canvas 2D chart data preparation
-│   │   └── scoreCalculator.ts      ← Score computation + formatting
+│   │   └── scoreCalculator.ts      ← Re-exports calculateScore from src/lib/scoring
 │   ├── transport/
 │   │   ├── adb.ts                  ← Android adb pull wrapper
 │   │   ├── simctl.ts               ← iOS xcrun simctl wrapper
@@ -136,7 +138,7 @@ App stops recording
 CLI pulls data
   ├── adb pull (Android) or file copy from simulator container (iOS)
   ├── Merges perf-steps.log (test step markers) by timestamp
-  ├── Calculates score: (avgJsFps/target + avgUiFps/target) / 2 * 100
+  ├── Calculates score via shared src/lib/scoring.ts (severity-weighted formula)
   └── Generates HTML report with FPS curves + event annotations
 ```
 
@@ -151,6 +153,7 @@ yarn prepare      # Both (runs automatically on install)
 ## Boundary Rules
 
 - `src/` NEVER imports from `cli/` or Node.js built-ins (`fs`, `path`, `child_process`)
-- `cli/` NEVER imports from `src/` (types are duplicated in `cli/types.ts`)
+- `cli/` may import from `src/lib/` for shared logic (e.g., `scoring.ts`), but NOT from `src/` React Native runtime code
 - `ios/` and `android/` implement the TurboModule spec defined in `src/NativeRnPerfScore.ts`
 - The `example/` app imports only from `rn-perf-score` (the published package surface)
+- `src/lib/scoring.ts` is also exposed as a `./scoring` subpath export in `package.json`
