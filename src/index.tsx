@@ -8,15 +8,8 @@ import type {
   DeviceInfo,
   PerfEventType,
 } from './types';
-import {
-  DEFAULT_CONFIG,
-  MAX_SCORE,
-  DROPPED_FRAME_RATIO,
-  UI_WEIGHT,
-  JS_WEIGHT,
-  AVG_SEVERITY_WEIGHT,
-  WORST_SEVERITY_WEIGHT,
-} from './types';
+import { DEFAULT_CONFIG } from './types';
+import { calculateScore } from './lib/scoring';
 import { JsFpsRecorder } from './recorder/JsFpsRecorder';
 import { NativeFpsRecorder } from './recorder/NativeFpsRecorder';
 import { FpsDataStore } from './recorder/FpsDataStore';
@@ -145,41 +138,7 @@ class PerfScoreRecorder {
     const trimmedSamples =
       firstValidIdx > 0 ? samples.slice(firstValidIdx) : samples;
 
-    const jsFpsValues = trimmedSamples.map((s) => s.jsFps);
-    const uiFpsValues = trimmedSamples.map((s) => s.uiFps);
-
-    const avgJsFps =
-      jsFpsValues.length > 0
-        ? jsFpsValues.reduce((a, b) => a + b, 0) / jsFpsValues.length
-        : 0;
-    const avgUiFps =
-      uiFpsValues.length > 0
-        ? uiFpsValues.reduce((a, b) => a + b, 0) / uiFpsValues.length
-        : 0;
-
-    const target = this.config.targetFps;
-    const jsFpsScore = Math.min((avgJsFps / target) * MAX_SCORE, MAX_SCORE);
-    const uiFpsScore = Math.min((avgUiFps / target) * MAX_SCORE, MAX_SCORE);
-    const baseScore = uiFpsScore * UI_WEIGHT + jsFpsScore * JS_WEIGHT;
-
-    const threshold = target * DROPPED_FRAME_RATIO;
-    const droppedFramesJs = jsFpsValues.filter((f) => f < threshold).length;
-    const droppedFramesUi = uiFpsValues.filter((f) => f < threshold).length;
-
-    const severities = trimmedSamples.map((s) => {
-      const jsDeficit = Math.max(0, Math.min((target - s.jsFps) / target, 1));
-      const uiDeficit = Math.max(0, Math.min((target - s.uiFps) / target, 1));
-      return Math.max(jsDeficit, uiDeficit) ** 2;
-    });
-
-    const avgSeverity =
-      severities.length > 0
-        ? severities.reduce((a, b) => a + b, 0) / severities.length
-        : 0;
-    const worstSeverity = severities.length > 0 ? Math.max(...severities) : 0;
-    const penalty =
-      avgSeverity * AVG_SEVERITY_WEIGHT + worstSeverity * WORST_SEVERITY_WEIGHT;
-    const score = Math.max(0, Math.round(baseScore - penalty));
+    const metrics = calculateScore(trimmedSamples, this.config.targetFps);
 
     return {
       version: 1,
@@ -195,19 +154,7 @@ class PerfScoreRecorder {
       targetFps: this.config.targetFps,
       samples: trimmedSamples,
       steps: [],
-      score,
-      avgJsFps: Math.round(avgJsFps * 10) / 10,
-      avgUiFps: Math.round(avgUiFps * 10) / 10,
-      minJsFps:
-        jsFpsValues.length > 0
-          ? Math.round(Math.min(...jsFpsValues) * 10) / 10
-          : 0,
-      minUiFps:
-        uiFpsValues.length > 0
-          ? Math.round(Math.min(...uiFpsValues) * 10) / 10
-          : 0,
-      droppedFramesJs,
-      droppedFramesUi,
+      ...metrics,
     };
   }
 }
@@ -224,5 +171,7 @@ export type {
   PerfEventType,
 };
 export { DEFAULT_CONFIG, getResultFilePath };
+export { calculateScore } from './lib/scoring';
+export type { ScoreResult } from './lib/scoring';
 export { PerfMonitor } from './PerfMonitor';
 export type { PerfMonitorProps } from './PerfMonitor';

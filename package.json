@@ -10,6 +10,11 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./scoring": {
+      "source": "./src/lib/scoring.ts",
+      "types": "./lib/typescript/src/lib/scoring.d.ts",
+      "default": "./lib/module/lib/scoring.js"
+    },
     "./package.json": "./package.json"
   },
   "bin": "./cli-dist/index.js",
